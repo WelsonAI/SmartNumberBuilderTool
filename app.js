@@ -15,6 +15,10 @@
       level: "Tahap",
       levelD2: "D2 (0–1,000)",
       levelD3: "D3 (0–10,000)",
+      questionType: "Jenis soalan",
+      randomOption: "Rawak",
+      largestOption: "Nombor terbesar",
+      smallestOption: "Nombor terkecil",
       newQuestion: "Cuba soalan lain",
       yourTask: "Mari cuba!",
       reset: "Mula semula",
@@ -56,7 +60,6 @@
       correct: "Betul!",
       wrongPlace: "Belum tepat. Semak nilai {place}.",
       wrongExtreme: "Belum tepat. Bandingkan digit dari sebelah kiri.",
-      zeroFirst: "Sifar tidak boleh berada di hadapan nombor.",
       wrongOrder: "Belum tepat. Bandingkan nilai {place} dahulu.",
       places: {
         thousands: "Ribu",
@@ -78,6 +81,10 @@
       level: "程度",
       levelD2: "二年级（0–1,000）",
       levelD3: "三年级（0–10,000）",
+      questionType: "题目类型",
+      randomOption: "随机",
+      largestOption: "最大数",
+      smallestOption: "最小数",
       newQuestion: "换一道题",
       yourTask: "试试看！",
       reset: "重新开始",
@@ -119,7 +126,6 @@
       correct: "答对了！",
       wrongPlace: "还不正确，请检查{place}。",
       wrongExtreme: "还不正确，请从左边开始比较数字。",
-      zeroFirst: "0不能放在一个数的最前面。",
       wrongOrder: "还不正确，请先比较{place}。",
       places: {
         thousands: "千位",
@@ -141,6 +147,10 @@
       level: "Level",
       levelD2: "Y2 (0–1,000)",
       levelD3: "Y3 (0–10,000)",
+      questionType: "Question type",
+      randomOption: "Random",
+      largestOption: "Largest number",
+      smallestOption: "Smallest number",
       newQuestion: "Try another question",
       yourTask: "Let's try!",
       reset: "Start again",
@@ -182,7 +192,6 @@
       correct: "Correct!",
       wrongPlace: "Not yet. Check the {place} place.",
       wrongExtreme: "Not yet. Compare the digits from the left.",
-      zeroFirst: "Zero cannot be the first digit of a number.",
       wrongOrder: "Not yet. Compare the {place} place first.",
       places: {
         thousands: "Thousands",
@@ -212,6 +221,7 @@
     sound: true,
     mode: "build",
     level: "d2",
+    extremeObjective: "random",
     question: null,
     placements: [],
     selectedCardId: null,
@@ -224,6 +234,8 @@
 
   const modeTabs = document.getElementById("modeTabs");
   const levelSelect = document.getElementById("levelSelect");
+  const extremeObjectiveField = document.getElementById("extremeObjectiveField");
+  const extremeObjectiveSelect = document.getElementById("extremeObjectiveSelect");
   const soundToggle = document.getElementById("soundToggle");
   const modeTitle = document.getElementById("modeTitle");
   const howToText = document.getElementById("howToText");
@@ -321,18 +333,15 @@
         digits = createDigits(length, { preferZero: Math.random() < .58 });
       }
 
-      const objective = Math.random() < .5 ? "largest" : "smallest";
+      const objective = state.extremeObjective === "random"
+        ? Math.random() < .5 ? "largest" : "smallest"
+        : state.extremeObjective;
       let expected;
 
       if (objective === "largest") {
         expected = [...digits].sort((a, b) => b - a);
       } else {
-        const ascending = [...digits].sort((a, b) => a - b);
-        if (ascending[0] === 0) {
-          const firstNonZero = ascending.findIndex(value => value !== 0);
-          [ascending[0], ascending[firstNonZero]] = [ascending[firstNonZero], ascending[0]];
-        }
-        expected = ascending;
+        expected = [...digits].sort((a, b) => a - b);
       }
 
       question = {
@@ -388,6 +397,8 @@
     });
 
     soundToggle.querySelector("span:last-child").textContent = state.sound ? t().soundOn : t().soundOff;
+    extremeObjectiveField.hidden = state.mode !== "extreme";
+    extremeObjectiveSelect.value = state.extremeObjective;
     modeTitle.textContent = t()[`mode${capitalize(state.mode)}`];
     howToText.textContent = t().howTo;
     promptText.textContent = t().prompts[state.mode];
@@ -476,7 +487,8 @@
       name.className = "place-name";
       multiplier.className = "place-multiplier";
       name.textContent = t().places[place.key];
-      multiplier.textContent = `× ${formatNumber(place.value)}`;
+      multiplier.textContent = state.mode === "decompose" ? "" : `× ${formatNumber(place.value)}`;
+      multiplier.hidden = state.mode === "decompose";
       column.append(name, multiplier, createSlot(index, state.placements[index], place));
       board.append(column);
     });
@@ -682,7 +694,7 @@
     }
 
     if (state.mode === "extreme") {
-      return `${prefix}<span class="explain-part">${formatNumber(digitsToNumber(actual))}</span>`;
+      return `${prefix}<span class="explain-part">${actual.join("")}</span>`;
     }
 
     return `${prefix}<span class="place-explanation">${actual.map(value => `<span class="explain-part">${formatNumber(value)}</span>`).join(" → ")}</span>`;
@@ -690,7 +702,6 @@
 
   function makeHint(actual) {
     if (state.mode === "extreme") {
-      if (actual[0] === 0) return t().zeroFirst;
       return t().wrongExtreme;
     }
 
@@ -828,6 +839,12 @@
 
   levelSelect.addEventListener("change", () => {
     state.level = levelSelect.value;
+    playClick();
+    generateQuestion();
+  });
+
+  extremeObjectiveSelect.addEventListener("change", () => {
+    state.extremeObjective = extremeObjectiveSelect.value;
     playClick();
     generateQuestion();
   });

@@ -258,6 +258,8 @@ h1 {
   font-weight: 750;
 }
 
+.field[hidden] { display: none; }
+
 select {
   width: 100%;
   min-height: 46px;
